@@ -1,0 +1,71 @@
+---
+- hosts: all
+  gather_facts: false
+  vars:
+    ansible_host_key_checking: false
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o userknownhostsfile=/dev/null'
+
+# ansible-playbook azure_provision_ansible_server.yaml -i vm-tower.eastus.cloudapp.azure.com, -e 'ansible_user=ansible ansible_password="fest2020!Sept"'
+
+  tasks:
+    - name: 'Wait for system to become reachable'
+      wait_for_connection:
+        timeout: 300
+
+    - name: 'Ensure required packages are installed'
+      yum:
+        name:
+          - tar     # required for unarchive Ansible module
+          - unzip   # required for unarchive Ansible module
+        state: present
+
+    - name: 'Update the operating system'
+      yum:
+        name: "*"
+        state: latest
+      become: true
+      register: os_update
+
+    - name: 'Reboot the VM'
+      reboot:
+      become: true
+      when: os_update.changed
+
+    - name: 'Find any previous unpacked Tower archives'
+      find:
+        path: '/tmp'
+        file_type: directory
+        pattern: 'ansible-tower-setup*'
+      register: found_previous_installer
+
+    - name: 'Ensure tmp has no unpacked Tower installers'
+      become: true
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ found_previous_installer.files }}"
+
+    - name: 'Download and unpack the Tower installer archive'
+      unarchive:
+        dest: '/tmp/'
+        remote_src: yes
+        src: 'https://releases.ansible.com/ansible-tower/setup/ansible-tower-setup-latest.tar.gz'
+
+    - name: 'Find the unpacked Tower installer directory'
+      find:
+        path: '/tmp'
+        file_type: directory
+        pattern: 'ansible-tower-setup*'
+      register: installer_dir
+
+    - name: 'Copy inventory file for Tower installer'
+      copy:
+        dest: "{{ installer_dir.files[0].path }}/inventory"
+        src: 'inventory'
+
+    - name: 'Run Tower installer'
+      become: true
+      shell:
+        chdir: "{{ installer_dir.files[0].path }}"
+        cmd: './setup.sh'
+      

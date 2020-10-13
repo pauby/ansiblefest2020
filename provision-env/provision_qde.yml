@@ -1,0 +1,28 @@
+---
+- hosts: all
+  gather_facts: false
+  vars:
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_port: 5985
+
+  tasks:
+    - name: 'Install Wait for system to become reachable'
+      wait_for_connection:
+        timeout: 300
+
+    # - name: 'Ensure Chocolatey license folder exists'
+    #   win_file:
+    #     path: 'c:\programdata\chocolatey\license'
+    #     state: directory
+
+    - name: 'Copy Chocolatey License'
+      win_copy:
+        dest: 'c:\programdata\chocolatey\license\'
+        src: 'chocolatey.license.xml'
+
+    - name: 'Run QDE first time setup'
+      win_shell: 'c:\choco-setup\files\Set-QDEnvironment.ps1 -NexusApiKey "{{ qde_nexus_api_key }}"'
+      args:
+        creates: 'c:\choco-setup\packages\chocolatey.license.*.nupkg'

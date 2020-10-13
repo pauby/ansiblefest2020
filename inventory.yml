@@ -1,0 +1,22 @@
+all:
+  hosts:
+    <QDE FQDN>
+      ansible_port: 5985
+      qde_nesus_api_key: '<QDE NEXUS API KEY>'
+
+chocolatey_business_clients:
+  hosts:
+    <QDE FQDN>
+    <WINDOWS CLIENT FQDN>
+
+linux:
+    hosts:
+        <ANSIBLE TOWER FQDN>
+
+windows:
+    hosts:
+        <QDE FQDN>
+    vars:
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore

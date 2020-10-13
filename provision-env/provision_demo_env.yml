@@ -1,0 +1,26 @@
+- hosts: localhost
+  gather_facts: false
+  connection: local
+
+- name: 'Include variables'
+  include_vars:
+    file: provision_vars.yml
+
+- name: 'Create common Azure resources'
+  import_playbook: create_common_azure_resources.yml
+
+- name: 'Create Tower VM'
+  import_playbook: create_tower_instance.yml
+
+- name: 'Provision Tower Server'
+  import_playbook: provision_tower.yml
+
+#- name: 'Create QDE resources'
+#  import_playbook: create_qde_resources.yml
+
+# There is no automated method for provisioning QDE so please do this manually
+# between running these playbooks. Remember to create teh Ansible user too.
+
+#-name: 'Provisoon QDE'
+#  import_playbook: provision_qde.yml
+

@@ -1,0 +1,108 @@
+---
+- hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - pause:
+        prompt: "Enter Admin username"
+      when: username is undefined
+      register: username_input
+
+    - set_fact:
+        username: "{{ username_input.user_input }}"
+      when: username is undefined
+
+    - pause:
+        prompt: "Enter Admin password"
+        echo: no
+      when: password is undefined
+      register: password_input
+
+    - set_fact:
+        password: "{{ password_input.user_input }}"
+      when: password is undefined
+
+########
+#
+# Create the Ansible Tower Server
+#
+########
+    - name: 'Ansible Tower - Create public IP address'
+      azure_rm_publicipaddress:
+        resource_group: "{{ azure_resource_group }}"
+        allocation_method: Static
+        domain_name: "{{ vm_name_tower }}"
+        name: "publicip-{{ vm_name_tower }}"
+      register: output_ip_address
+
+    - name: Output public IP
+      debug:
+        msg: "The public IP is {{ output_ip_address.state.ip_address }}"
+
+    - name: 'Ansible Tower - Create Network Security Group'
+      azure_rm_securitygroup:
+        resource_group: "{{ azure_resource_group }}"
+        name: "nsg-{{ vm_name_tower }}"
+        rules:
+          - name: SSH
+            protocol: Tcp
+            destination_port_range: 22
+            access: Allow
+            priority: 1001
+            direction: Inbound
+          - name: 'Allow_Web_Traffic'
+            protocol: Tcp
+            destination_port_range:
+              - 80
+              - 443
+            access: Allow
+            priority: 1002
+            direction: Inbound
+
+    - name: 'Ansible Tower - Create virtual NIC'
+      azure_rm_networkinterface:
+        name: "nic-{{ vm_name_tower }}"
+        resource_group: "{{ azure_resource_group }}"
+        virtual_network: "vnet-{{ azure_resource_group }}"
+        subnet: "subnet-{{ azure_resource_group }}"
+        security_group: "nsg-{{ vm_name_tower }}"
+        ip_configurations:
+          - name: "ip-{{ vm_name_tower }}"
+            public_ip_name: "publicip-{{ vm_name_tower }}"
+            primary: True
+
+    - name: 'Ansible Tower - Create VM'
+      azure_rm_virtualmachine:
+        resource_group: "{{ azure_resource_group }}"
+        name: "{{ vm_name_tower }}"
+        vm_size: "{{ azure_vm_tower_size }}"
+        admin_username: "{{ username }}"
+        admin_password: "{{ password }}"
+        ssh_password_enabled: true
+        network_interfaces: "nic-{{ vm_name_tower }}"
+        #custom_data: "{{ lookup('file', 'cloud-init.yml') }}"
+        image:
+          offer: CentOS
+          publisher: OpenLogic
+          sku: '7.5'    # Tower only supports CentOS version 7.7 but after we do a yum update we'll get this
+          version: latest
+
+    - name: 'Ansible Tower - Update sudoers'
+      azure_rm_virtualmachineextension:
+        name: update-sudoers
+        resource_group: "{{ azure_resource_group }}"
+        virtual_machine_name: "{{ vm_name_tower }}"
+        publisher: Microsoft.Azure.Extensions
+        virtual_machine_extension_type: CustomScript
+        type_handler_version: '2.0'
+        settings: '{"fileUris": ["https://raw.githubusercontent.com/Duffney/becomeansible/master/chapter-03/azure/update-sudoers.sh"],"commandToExecute": "bash update-sudoers.sh"}'
+        #settings: '{"commandToExecute": "bash -c echo \"ansible        ALL=(ALL)       NOPASSWD: ALL\" >> /etc/sudoers"}'
+        auto_upgrade_minor_version: true
+
+    # TODO: grab this name from Azure using Ansible than create it as a string
+    # as we will be re-creating the vm's over and over, just remove the keys
+    - name: 'Remove host from known hosts'
+      known_hosts:
+        name: "{{ vm_name_tower }}.{{ azure_region }}.cloudapp.azure.com"
+        state: absent

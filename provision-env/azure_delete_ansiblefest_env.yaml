@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  connection: local
+  vars:
+    azure_resource_group: "ansiblefest2020"
+
+  tasks:
+    - name: delete resource group
+      azure_rm_resourcegroup:
+        name: "{{ azure_resource_group }}"
+        force_delete_nonempty: yes
+        state: absent

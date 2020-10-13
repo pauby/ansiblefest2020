@@ -1,0 +1,21 @@
+---
+- hosts: chocolatey_business_clients
+  gather_facts: false
+
+  tasks:
+    - name: 'Install Chocolatey'
+      win_chocolatey:
+        name: 'chocolatey'
+        source: 'https://chocoserver:8443/repository/ChocolateyInternal/'
+
+    - name: 'Ensure required Chocolatey features are enabled'
+      win_chocolatey_feature:
+        name: 'autouninstaller'
+
+    - name: 'Ensure required Chocolatey features are disabled'
+      win_chocolatey_feature:
+        name: "{{ item }}"
+        state: disabled
+      loop:
+        - 'showDownloadProgress'
+        - 'logValidationResultsOnWarnings'

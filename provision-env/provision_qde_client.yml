@@ -1,0 +1,15 @@
+---
+- hosts: chocolatey_business_clients
+  gather_facts: false
+  vars:
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+
+  tasks:
+    - name: 'Run QDE client first time setup'
+      win_shell: |
+        $downloader = New-Object -TypeName System.Net.WebClient
+        Invoke-Expression ($downloader.DownloadString('http://chocoserver:80/Import-ChocoServerCertificate.ps1'))
+#        $downloader = New-Object -TypeName System.Net.WebClient
+#        Invoke-Expression ($downloader.DownloadString('https://chocoserver:8443/repository/choco-install/ClientSetup.ps1'))

@@ -1,0 +1,83 @@
+---
+- hosts: chocolatey_business_clients
+  gather_facts: false
+
+  tasks:
+    - name: 'Install Chocolatey'
+      win_chocolatey:
+        name: 'chocolatey'
+
+    - name: 'Disable "chocolatey" source'
+      win_chocolatey_source:
+        name: 'chocolatey'
+        state: disabled
+
+    - name: 'Set default package source to QDE'
+      win_chocolatey_source:
+        name: 'internal-repo'
+        priority: 1
+        source: 'https://chocoserver:8443/repository/ChocolateyInternal/'
+
+    - name: 'Ensure required Chocolatey features are enabled'
+      win_chocolatey_feature:
+        name: 'autouninstaller'
+
+    - name: 'Ensure required Chocolatey features are disabled'
+      win_chocolatey_feature:
+        name: "{{ item }}"
+        state: disabled
+      loop:
+        - 'showDownloadProgress'
+        - 'logValidationResultsOnWarnings'
+
+    - name: 'Install Chocolatey license'
+      win_chocolatey:
+        name: 'chocolatey-license'
+
+    - name: 'Install chocolatey.extension licensed package'
+      win_chocolatey:
+        name: 'chocolatey.extension'
+
+    - name: 'Install chocolatey-agent licensed package'
+      win_chocolatey:
+        name: 'chocolatey-agent'
+
+    - name: 'Install ChocolateyGUI for Self Service'
+      win_chocolatey:
+        name: 'chocolateygui'
+
+    - name: 'Ensure required Chocolatey For Business features are disabled'
+      win_chocolatey_feature:
+        name: "{{ item }}"
+        state: disabled
+      loop:
+        - 'showNonElevatedWarnings'
+
+    - name: 'Ensure required Chocolatey For Business features are enabled'
+      win_chocolatey_feature:
+        name: "{{ item }}"
+      loop:
+        - 'useBackgroundService'
+        - 'useBackgroundServiceWithNonAdministratorsOnly'
+        - 'allowBackgroundServiceUninstallsFromUserInstallsOnly'
+      notify: 'Restart chocolatey-agent'
+
+    - name: 'Configure Chocolatey Central Management endpoint'
+      win_chocolatey_config:
+        name: 'CentralManagementServiceUrl'
+        value: 'https://chocoserver:24020/ChocolateyManagementService'
+      notify: 'Restart chocolatey-agent'
+
+    - name: 'Enable Chocolatey Central Management features'
+      win_chocolatey_feature:
+        name: "{{ item }}"
+      loop:
+        - 'useChocolateyCentralManagement'
+        - 'useChocolateyCentralManagementDeployments'
+      notify: 'Restart chocolatey-agent'
+
+  handlers:
+    - name: 'Restart chocolatey-agent'
+      win_service:
+        name: 'chocolatey-agent'
+        state: restarted

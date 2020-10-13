@@ -1,0 +1,86 @@
+---
+- hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: 'Include vars for provisioning.'
+      include_vars:
+        file: provision_vars.yml
+
+    - pause:
+        prompt: "Enter Admin username"
+      when: username is undefined
+      register: username_input
+
+    - set_fact:
+        username: "{{ username_input.user_input }}"
+      when: username is undefined
+
+    - pause:
+        prompt: "Enter Admin password"
+        echo: no
+      when: password is undefined
+      register: password_input
+
+    - set_fact:
+        password: "{{ password_input.user_input }}"
+      when: password is undefined
+
+##########
+#
+# Create the QDE resources
+#
+##########
+
+    - name: 'QDE - Create public IP address'
+      azure_rm_publicipaddress:
+        resource_group: "{{ azure_resource_group }}"
+        allocation_method: Static
+        domain_name: "{{ vm_name_qde }}"
+        name: "publicip-{{ vm_name_qde }}"
+      register: output_ip_address
+
+    - name: 'Output CCM public IP address'
+      debug:
+        msg: "The public IP address of QDE is {{ output_ip_address.state.ip_address }}"
+
+    - name: 'QDE - Create network security group'
+      azure_rm_securitygroup:
+        resource_group: "{{ azure_resource_group }}"
+        name: "nsg-{{ vm_name_qde }}"
+        rules:
+          - name: 'allow_rdp'
+            protocol: Tcp
+            destination_port_range: 3389
+            access: Allow
+            priority: 1001
+            direction: Inbound
+          - name: 'allow_web_traffic'
+            protocol: Tcp
+            destination_port_range:
+              - 80
+              - 443
+            access: Allow
+            priority: 1002
+            direction: Inbound
+          - name: 'allow_powershell_remoting'
+            protocol: Tcp
+            destination_port_range:
+              - 5985
+              - 5986
+            access: Allow
+            priority: 1003
+            direction: Inbound
+
+    - name: 'QDE - Create virtual NIC'
+      azure_rm_networkinterface:
+        name: "nic-{{ vm_name_qde }}"
+        resource_group: "{{ azure_resource_group }}"
+        virtual_network: "vnet-{{ azure_resource_group }}"
+        subnet_name: "subnet-{{ azure_resource_group }}"
+        security_group: "nsg-{{ vm_name_qde }}"
+        ip_configurations:
+          - name: "ip-{{ vm_name_qde }}"
+            public_ip_address_name: "publicip-{{ vm_name_qde }}"
+            primary: True

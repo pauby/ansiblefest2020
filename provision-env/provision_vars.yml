@@ -1,0 +1,13 @@
+vm_name_tower: "vm-tower"
+vm_name_ccm: 'vm-ccm'
+vm_name_qde: 'vm-qde'
+vm_domain: "ansiblefest2020"
+azure_vm_tower_size: 'Standard_DS2_v2' # see https://docs.ansible.com/ansible-tower/latest/html/quickinstall/prepare.html#prerequisites-and-requirements
+azure_vm_ccm_size: 'Standard_DS2_v2'
+azure_vm_client_size: 'Standard_DS1_v2'
+azure_resource_group: "ansiblefest2020"
+azure_region: "eastus"
+azure_vnet_prefix: "10.10.0.0/16"
+azure_subnet_prefix: "10.10.10.0/24"
+
+vm_ccm_packages_dir: 'c:\packages'

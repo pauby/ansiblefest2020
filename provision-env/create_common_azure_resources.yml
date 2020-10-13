@@ -1,0 +1,26 @@
+- hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: 'Include vars for provisioning.'
+      include_vars:
+        file: provision_vars.yml
+
+    - name: 'Create resource group'
+      azure_rm_resourcegroup:
+        name: "{{ azure_resource_group }}"
+        location: "{{ azure_region }}"
+
+    - name: 'Create virtual network'
+      azure_rm_virtualnetwork:
+        resource_group: "{{ azure_resource_group }}"
+        name: "vnet-{{ azure_resource_group }}"
+        address_prefixes: "{{ azure_vnet_prefix }}"
+
+    - name: 'Create subnet'
+      azure_rm_subnet:
+        resource_group: "{{ azure_resource_group }}"
+        name: "subnet-{{ azure_resource_group }}"
+        address_prefix: "{{ azure_subnet_prefix }}"
+        virtual_network: "vnet-{{ azure_resource_group }}"
