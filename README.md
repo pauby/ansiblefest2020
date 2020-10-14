@@ -1,5 +1,10 @@
 ## Ansiblefest 2020 - Chocolatey and Ansible
 
+The resources for the talk are below:
+
+* [Slides](https://github.com/pauby/ansiblefest2020/raw/master/Chocolatey.AnsibleFest.2020.Slides.pdf);
+* Video (to be added later);
+
 ### Things To Know
 
 * If you want to just play around with [Ansible](https://ansible.com) and [Chocolatey](https://chocolatey.org/products) you don't need a license or Chocolatey's [Quick Deployment Environment](https://chocolatey.org/docs/quick-deployment-environment);
