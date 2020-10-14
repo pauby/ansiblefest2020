@@ -2,7 +2,7 @@ all:
   hosts:
     <QDE FQDN>
       ansible_port: 5985
-      qde_nesus_api_key: '<QDE NEXUS API KEY>'
+      qde_nexus_api_key: '<QDE NEXUS API KEY>'
 
 chocolatey_business_clients:
   hosts:
